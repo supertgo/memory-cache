@@ -12,7 +12,7 @@ EXE = $(BIN)/simulador
 all: run
 
 run: $(EXE)
-	$(EXE) 4096 1024 4 src/laura.txt
+	$(EXE) 4096 1024 2 src/laura.txt
 
 $(EXE): $(OBJS)
 	$(CC) -pg -o $(EXE) $(OBJS) $(LIBS)

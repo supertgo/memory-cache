@@ -3,6 +3,7 @@
 #include <cstdlib>
 #include <deque>
 #include <fstream>
+#include <iomanip>
 #include <iostream>
 #include <sstream>
 #include <vector>
@@ -12,17 +13,22 @@ public:
   bool valid;
   uint32_t address;
 
-  Item() : valid(false), address(0){};
   Item(uint32_t _address) : valid(true), address(_address){};
   Item(bool valid, uint32_t _address) : valid(valid), address(_address){};
 };
 
+class Row {
+public:
+  std::deque<Item> list;
+  int first = 0;
+};
+
 class Cache {
 public:
-  unsigned int hit, misses;
+  unsigned int hits = 0, misses = 0, size = 0;
   u_int32_t line;
   u_int32_t associativity;
-  std::vector<std::deque<Item>> row;
+  std::vector<Row> row;
 
   Cache(int _line, int _associativity) {
     this->line = _line;
@@ -32,26 +38,31 @@ public:
 
   void insert(uint32_t address, int offset) {
     uint32_t addr = ((address >> offset) << offset) >> offset;
-    int position = address % (line / associativity);
+    uint32_t cardinality = line / associativity;
+    int position = address % cardinality;
 
     if (this->found(position, addr)) {
-      this->hit++;
+      this->hits++;
       return;
     }
 
     this->misses++;
 
-    if (this->row[position].size() >= associativity) {
-      this->row[position].pop_back();
+    if (this->row[position].list.size() >= associativity) {
+      this->row[position].list[(this->row[position].first % associativity)] =
+          addr;
+      this->row[position].first++;
+    } else {
+      this->row[position].list.push_back(Item(true, addr));
     }
 
-    this->row[position].push_back(Item(true, addr));
+    this->print();
   }
 
   bool found(int position, uint32_t address) {
-    for (size_t i = 0; i < this->row[position].size(); i++) {
-      if (this->row[position][i].address == address &&
-          this->row[position][i].valid) {
+    for (size_t i = 0; i < this->row[position].list.size(); i++) {
+      if (this->row[position].list[i].address == address &&
+          this->row[position].list[i].valid) {
         return true;
       }
     }
@@ -59,30 +70,38 @@ public:
     return false;
   }
 
-  void print(std::vector<std::uint32_t> addresses) {
-    int cont = 0;
+  void parseAddressToHex(std::uint32_t address) {
+    std::cout << std::uppercase << "0x" << std::hex << address << std::endl;
+  }
+
+  void print() {
+    size_t cont = 0;
     size_t i = 0;
     std::cout << "================" << std::endl;
-    std::cout << "IDX V * ADDR *" << std::endl;
-    
-    for ( ; i < this->row.size(); i++) {
-      if (this->row[i].size() == 0 ){
-          std::cout << cont << "   " << 0 << " " << 0 << std::endl;
-          cont++;
-          continue;
+    std::cout << "IDX V ** ADDR **" << std::endl;
+
+    for (; i < this->row.size(); i++) {
+      if (this->row[i].list.size() == 0) {
+        std::cout << std::setfill('0') << std::setw(3) << cont << " " << 0
+                  << " " << std::endl;
+        cont++;
+        continue;
       }
-      for (size_t j = 0; j < this->row[i].size(); j++) {
-        std::cout << cont << "   " << this->row[i][j].valid << " " << std::hex << this->row[i][j].address << std::endl;
+
+      for (size_t j = 0; j < this->row[i].list.size(); j++) {
+        std::cout << std::setfill('0') << std::setw(3) << cont << " "
+                  << this->row[i].list[j].valid << " ";
+
+        parseAddressToHex(this->row[i].list[j].address);
         cont++;
       }
     }
 
-    while(cont < addresses.size())
-    {
-        std::cout << cont << "   " << 0 << std::endl;
-          cont++;
+    while (cont < this->line) {
+      std::cout << std::dec << std::setfill('0') << std::setw(3) << cont << " "
+                << 0 << std::endl;
+      cont++;
     }
-
   }
 };
 
@@ -116,9 +135,13 @@ int main(int argc, char *argv[]) {
     cache.insert(address, offset);
   }
 
-  cache.print(addresses);
+  std::cout << std::endl;
+  std::cout << "#hits: " << cache.hits << std::endl;
+  std::cout << "#miss: " << cache.misses << std::endl;
 
-  
+  std::cout << std::endl;
+  uint32_t b = 113019322;
+  std::cout << (((b >> offset) << offset) >> offset) << std::endl;
 
   return 0;
 }
