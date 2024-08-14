@@ -59,20 +59,38 @@ public:
     return false;
   }
 
-  void print() {
-    for (size_t i = 0; i < this->row.size(); i++) {
+  void print(std::vector<std::uint32_t> addresses) {
+    int cont = 0;
+    size_t i = 0;
+    std::cout << "================" << std::endl;
+    std::cout << "IDX V * ADDR *" << std::endl;
+    
+    for ( ; i < this->row.size(); i++) {
+      if (this->row[i].size() == 0 ){
+          std::cout << cont << "   " << 0 << " " << 0 << std::endl;
+          cont++;
+          continue;
+      }
       for (size_t j = 0; j < this->row[i].size(); j++) {
-        std::cout << std::hex << this->row[i][j].address << std::endl;
+        std::cout << cont << "   " << this->row[i][j].valid << " " << std::hex << this->row[i][j].address << std::endl;
+        cont++;
       }
     }
+
+    while(cont < addresses.size())
+    {
+        std::cout << cont << "   " << 0 << std::endl;
+          cont++;
+    }
+
   }
 };
 
 int main(int argc, char *argv[]) {
-  uint32_t cache_size = std::atoi(argv[1]);
-  uint32_t line_size = std::atoi(argv[2]);
-  int associativity = std::atoi(argv[3]);
-  std::ifstream input_file(argv[4]);
+  uint32_t cache_size = 4096;
+  uint32_t line_size = 1024;
+  int associativity = 4;
+  std::ifstream input_file("laura.txt");
 
   if (!input_file.is_open()) {
     std::cerr << "Unable to open file!" << std::endl;
@@ -98,9 +116,9 @@ int main(int argc, char *argv[]) {
     cache.insert(address, offset);
   }
 
-  cache.print();
+  cache.print(addresses);
 
-  std::cout << cache.hit << std::endl;
+  
 
   return 0;
 }
