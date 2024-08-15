@@ -120,10 +120,11 @@ public:
 };
 
 int main(int argc, char *argv[]) {
-  uint32_t cache_size = 4096;
-  uint32_t line_size = 1024;
-  int associativity = 4;
-  std::ifstream input_file("src/laura.txt");
+
+  uint32_t cache_size = std::atoi(argv[1]);
+  uint32_t line_size = std::atoi(argv[2]);
+  int associativity = std::atoi(argv[3]);
+  std::ifstream input_file(argv[4]);
 
   if (!input_file.is_open()) {
     std::cerr << "Não foi possível abrir o arquivo de entrada" << std::endl;
