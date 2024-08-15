@@ -17,7 +17,7 @@ public:
   Item(bool valid, uint32_t _address) : valid(valid), address(_address){};
 };
 
-class Row {
+class Block {
 public:
   std::deque<Item> list;
   int first = 0;
@@ -25,18 +25,32 @@ public:
 
 class Cache {
 public:
-  unsigned int hits = 0, misses = 0, size = 0;
-  u_int32_t line;
-  u_int32_t associativity;
-  std::vector<Row> row;
+  unsigned int hits = 0, misses = 0;
+  u_int32_t line, associativity;
+  std::vector<Block> block;
+  std::ofstream output_file;
 
   Cache(int _line, int _associativity) {
     this->line = _line;
     this->associativity = _associativity;
-    this->row.resize(line / associativity);
+    this->block.resize(line / associativity);
+
+    output_file.open("output.txt");
+
+    if (!output_file.is_open()) {
+      std::cerr << "Não foi possível abrir o arquivo output.xt" << std::endl;
+      std::exit(1);
+    }
+  }
+
+  ~Cache() {
+    if (output_file.is_open()) {
+      output_file.close();
+    }
   }
 
   void insert(uint32_t address, int offset) {
+    // Aneeeeeeeeeeeenha Isso é o memso que address >> offset, não?
     uint32_t addr = ((address >> offset) << offset) >> offset;
     uint32_t cardinality = line / associativity;
     int position = address % cardinality;
@@ -48,21 +62,21 @@ public:
 
     this->misses++;
 
-    if (this->row[position].list.size() >= associativity) {
-      this->row[position].list[(this->row[position].first % associativity)] =
-          addr;
-      this->row[position].first++;
+    if (this->block[position].list.size() >= associativity) {
+      this->block[position]
+          .list[(this->block[position].first % associativity)] = addr;
+      this->block[position].first++;
     } else {
-      this->row[position].list.push_back(Item(true, addr));
+      this->block[position].list.push_back(Item(true, addr));
     }
 
     this->print();
   }
 
-  bool found(int position, uint32_t address) {
-    for (size_t i = 0; i < this->row[position].list.size(); i++) {
-      if (this->row[position].list[i].address == address &&
-          this->row[position].list[i].valid) {
+  bool found(int position, uint32_t address) const {
+    for (size_t i = 0; i < this->block[position].list.size(); i++) {
+      if (this->block[position].list[i].address == address &&
+          this->block[position].list[i].valid) {
         return true;
       }
     }
@@ -71,35 +85,35 @@ public:
   }
 
   void parseAddressToHex(std::uint32_t address) {
-    std::cout << std::uppercase << "0x" << std::hex << address << std::endl;
+    output_file << std::uppercase << "0x" << std::hex << address << std::endl;
   }
 
   void print() {
     size_t cont = 0;
     size_t i = 0;
-    std::cout << "================" << std::endl;
-    std::cout << "IDX V ** ADDR **" << std::endl;
+    output_file << "================" << std::endl;
+    output_file << "IDX V ** ADDR **" << std::endl;
 
-    for (; i < this->row.size(); i++) {
-      if (this->row[i].list.size() == 0) {
-        std::cout << std::setfill('0') << std::setw(3) << cont << " " << 0
-                  << " " << std::endl;
+    for (; i < this->block.size(); i++) {
+      if (this->block[i].list.empty()) {
+        output_file << std::setfill('0') << std::setw(3) << cont << " " << 0
+                    << " " << std::endl;
         cont++;
         continue;
       }
 
-      for (size_t j = 0; j < this->row[i].list.size(); j++) {
-        std::cout << std::setfill('0') << std::setw(3) << cont << " "
-                  << this->row[i].list[j].valid << " ";
+      for (size_t j = 0; j < this->block[i].list.size(); j++) {
+        output_file << std::setfill('0') << std::setw(3) << cont << " "
+                    << this->block[i].list[j].valid << " ";
 
-        parseAddressToHex(this->row[i].list[j].address);
+        parseAddressToHex(this->block[i].list[j].address);
         cont++;
       }
     }
 
     while (cont < this->line) {
-      std::cout << std::dec << std::setfill('0') << std::setw(3) << cont << " "
-                << 0 << std::endl;
+      output_file << std::dec << std::setfill('0') << std::setw(3) << cont
+                  << " " << 0 << std::endl;
       cont++;
     }
   }
@@ -109,10 +123,11 @@ int main(int argc, char *argv[]) {
   uint32_t cache_size = 4096;
   uint32_t line_size = 1024;
   int associativity = 4;
-  std::ifstream input_file("laura.txt");
+  std::ifstream input_file("src/laura.txt");
 
   if (!input_file.is_open()) {
-    std::cerr << "Unable to open file!" << std::endl;
+    std::cerr << "Não foi possível abrir o arquivo de entrada" << std::endl;
+    return 1;
   }
 
   Cache cache(cache_size / line_size, associativity);
@@ -135,13 +150,9 @@ int main(int argc, char *argv[]) {
     cache.insert(address, offset);
   }
 
-  std::cout << std::endl;
-  std::cout << "#hits: " << cache.hits << std::endl;
-  std::cout << "#miss: " << cache.misses << std::endl;
-
-  std::cout << std::endl;
-  uint32_t b = 113019322;
-  std::cout << (((b >> offset) << offset) >> offset) << std::endl;
+  cache.output_file << std::endl;
+  cache.output_file << "#hits: " << cache.hits << std::endl;
+  cache.output_file << "#miss: " << cache.misses << std::endl;
 
   return 0;
 }
