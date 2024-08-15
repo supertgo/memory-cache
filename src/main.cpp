@@ -120,7 +120,6 @@ public:
 };
 
 int main(int argc, char *argv[]) {
-
   uint32_t cache_size = std::atoi(argv[1]);
   uint32_t line_size = std::atoi(argv[2]);
   int associativity = std::atoi(argv[3]);
