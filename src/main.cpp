@@ -50,13 +50,13 @@ public:
   }
 
   void insert(uint32_t address, int offset) {
-    // Aneeeeeeeeeeeenha Isso é o memso que address >> offset, não?
-    uint32_t addr = ((address >> offset) << offset) >> offset;
+    uint32_t addr = (address >> offset);
     uint32_t cardinality = line / associativity;
     int position = address % cardinality;
 
     if (this->found(position, addr)) {
       this->hits++;
+      this->print();
       return;
     }
 
@@ -85,7 +85,7 @@ public:
   }
 
   void parseAddressToHex(std::uint32_t address) {
-    output_file << std::uppercase << "0x" << std::hex << address << std::endl;
+    output_file << "0x" << std::setw(8) << std::setfill('0') << std::uppercase << std::hex << address << std::endl;
   }
 
   void print() {
@@ -152,7 +152,7 @@ int main(int argc, char *argv[]) {
 
   cache.output_file << std::endl;
   cache.output_file << "#hits: " << cache.hits << std::endl;
-  cache.output_file << "#miss: " << cache.misses << std::endl;
+  cache.output_file << "#miss: " << cache.misses;
 
   return 0;
 }
